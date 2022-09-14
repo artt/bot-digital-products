@@ -66,7 +66,7 @@ function findNodeIndex(nodes, id) {
   return nodes.map(node => node.id).indexOf(id)
 }
 
-export default function Graph() {
+export default function Graph({ clickedNode, setClickedNode }) {
 
   const fgRef = React.useRef();
   const [graphLoaded, setGraphLoaded] = React.useState(false);
