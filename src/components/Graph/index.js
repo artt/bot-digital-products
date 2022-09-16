@@ -23,6 +23,16 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
   const [hoveredLinkNeighbors, setHoveredLinkNeighbors] = React.useState(new Set())
   // link clicking is not supported
 
+  const handleCanvasClick = () => {
+    if (!hoveredNode && !hoveredLink) {
+      clickedNodeLinks.clear()
+      clickedNodeNeighbors.clear()
+      setClickedNodeNeighbors(clickedNodeNeighbors)
+      setClickedNodeLinks(clickedNodeLinks)
+      setSelection(null)
+    }
+  }
+
   const handleNodeClick = node => {
     const now = new Date();
     clickedNodeLinks.clear()
@@ -147,6 +157,7 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
 		// fgRef.current.d3Force('centerZ', forceZ(0));
 		fgRef.current.d3Force('link').distance(30);
 		fgRef.current.d3Force('link').strength(0.2);
+		fgRef.current.d3Force('charge').strength(-150);
 	}, [graphLoaded]);
 
   const [graphData, setGraphData] = React.useState({nodes: [], links: []})
@@ -156,7 +167,7 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
   }, [data])
 
   return(
-    <div>
+    <div onClick={handleCanvasClick}>
       {!graphLoaded &&
         <div className="center full">
           <div>

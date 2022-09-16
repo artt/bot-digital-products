@@ -4,13 +4,13 @@ const nodeStructure = {
   infrastructure: {
     data: [
       {
+        name: "Payment Data Platform",
+        description: "",
+      },
+      {
         name: "CWS",
         description: "ธปท. รับหน้าที่เป็นผู้ดูแลและดำเนินงานระบบฐานข้อมูลกลางในระยะแรก เพื่อให้มั่นใจว่าระบบฐานข้อมูลดังกล่าวมีประสิทธิภาพเพียงพอ พร้อมกันนี้ ธปท. ได้ออกแนวปฏิบัติ ธปท. เรื่อง การใช้ระบบฐานข้อมูลกลาง เพื่อใช้เป็นกรอบหลักเกณฑ์ให้ผู้ใช้งานระบบฐานข้อมูลกลางถือปฏิบัติในการใช้งานที่เป็นมาตรฐานเดียวกัน",
         link: "https://www.bot.or.th/Thai/PressandSpeeches/Press/2021/Pages/n2964.aspx",
-      },
-      {
-        name: "Payment Data Platform",
-        description: "",
       },
     ],
     payment: [
@@ -29,11 +29,11 @@ const nodeStructure = {
     ],
     lending: [
       {
-        name: "Digital Factoring",
+        name: "dStatement",
         description: "",
       },
       {
-        name: "dStatement",
+        name: "Digital Factoring",
         description: "",
       },
     ]
