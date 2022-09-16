@@ -1,7 +1,6 @@
 import React from "react"
 import ForceGraph2D from 'react-force-graph-2d';
 import { forceX, forceY, forceZ } from 'd3-force-3d'
-import { colors } from "../../data"
 
 const DBL_CLICK_TIMEOUT = 500
 const blurOpacity = 0.15
@@ -145,9 +144,9 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
     }
     ctx.beginPath();
     ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI);
-    ctx.fillStyle = `rgba(${colors[node.type]}, ${getNodeOpacity(node)}`
+    ctx.fillStyle = `rgba(${node.color}, ${getNodeOpacity(node)}`
     ctx.fill()
-    drawText(ctx, node.name, node.x, node.y + 10, { fontColor: node === selection ? "black" : `rgba(${colors[node.type]}, ${getNodeOpacity(node)})`, bold: node === selection })
+    drawText(ctx, node.name, node.x, node.y + 10, { fontColor: `rgba(${node.color}, ${getNodeOpacity(node)})`, bold: node === selection })
   }
 
   // draw extra info on links (in case of link selection)
@@ -161,7 +160,7 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
     if (!graphLoaded) {
       return
     }
-    const f = 0.3
+    const f = 0
 		fgRef.current.d3Force('centerX', forceX(-200).strength(node => {
       return (node.type === "infrastructure" ? f : 0)
     }))
@@ -218,7 +217,7 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
             </defs>
             <g style={{ opacity: 0.1, filter: 'url(#goo)' }}>
               {nodePos.length > 0 &&
-                nodePos.map(n => <circle cx={n.x} cy={n.y} r="60" fill={n.type === "product" ? "red" : "blue"} />)
+                nodePos.map(n => <circle cx={n.x} cy={n.y} r="60" fill={`rgba(${n.color}, 1)`} />)
               }
             </g>
           </svg>
@@ -250,7 +249,7 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
             onRenderFramePre={() => {
               setNodePos(graphData.nodes.map(node => {
                 const coord = fgRef.current.graph2ScreenCoords(node.x, node.y)
-                return {...coord, type: node.type}
+                return {...node, ...coord}
               }))
             }}
           />

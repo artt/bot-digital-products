@@ -5,7 +5,6 @@ const nodeStructure = {
     data: [
       {
         name: "Payment Data Platform",
-        description: "",
       },
       {
         name: "CWS",
@@ -16,27 +15,51 @@ const nodeStructure = {
     payment: [
       {
         name: "BAHTNET API Hub",
-        description: "",
       },
-    ]
+      {
+        name: "mBridge",
+      },
+    ],
+    id: [
+      {
+        name: "NDID",
+      }
+    ],
   },
   product: {
     payment: [
       {
         name: "PromptBiz",
-        description: "",
+      },
+      {
+        name: "PromptPay",
+      },
+      {
+        name: "Cross-border Payment",
+      },
+      {
+        name: "Cross-border Transfer",
+      },
+      {
+        name: "QR Payment",
       },
     ],
     lending: [
       {
         name: "dStatement",
-        description: "",
       },
       {
         name: "Digital Factoring",
-        description: "",
       },
-    ]
+      {
+        name: "Digital P-Loan",
+      }
+    ],
+    id: [
+      {
+        name: "e-KYC",
+      },
+    ],
   }
 }
 
@@ -46,11 +69,26 @@ const linkStructure = [
   {source: "BAHTNET API Hub", target: "PromptBiz", name: "สนับสนุนการโอนเงินปริมาณมาก"},
   {source: "Payment Data Platform", target: "dStatement", name: "แหล่งข้อมูล", type: "optional"},
   {source: "PromptBiz", target: "Payment Data Platform", name: "ข้อมูลการทำธุรกรรม"},
+  {source: "NDID", target: "e-KYC", name: "ระบบส่งต่อข้อมูล"},
+  {source: "e-KYC", target: "Digital P-Loan", name: "ยืนยันตัวตน"},
+  {source: "e-KYC", target: "PromptBiz", name: "ยืนยันตัวตน"},
+  {source: "PromptPay", target: "Digital P-Loan", name: "ข้อมูลทางเลือกในการปล่อยสินเชื่อ", type: "optional"},
+  {source: "QR Payment", target: "PromptPay", name: "เพิ่มความสะดวก", type: "optional"},
+  {source: "PromptPay", target: "Cross-border Payment", name: "กลไกรับส่งเงินฝั่งเงินบาท"},
+  {source: "mBridge", target: "Cross-border Transfer", name: "โครงสร้างพื้นฐาน"},
 ]
 
 export const colors = {
-  infrastructure: [45, 130, 161],
-  product: [243, 137, 3],
+  infrastructure: {
+    data: [45, 130, 161],
+    payment: [80, 40, 200],
+    id: [20, 150, 178],
+  },
+  product: {
+    payment: [243, 137, 3],
+    lending: [255, 100, 20],
+    id: [220, 137, 30],
+  },
 }
 
 function processNodes(nodeStructure) {
@@ -63,6 +101,7 @@ function processNodes(nodeStructure) {
           id: kebabCase(n.name),
           type: type,
           subtype: subtype,
+          color: colors[type][subtype],
         })
       })
     })
