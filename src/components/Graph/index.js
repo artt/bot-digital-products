@@ -93,6 +93,22 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
     return 1
   }
 
+  /// expand with color, background etc.
+function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, bkg="", padding=1 }) {
+  ctx.save();
+  ctx.font = `${bold ? "bold" : ""} ${fontSize}px sans-serif`;
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle';
+  if (bkg) {
+    ctx.fillStyle = bkg
+    const width = ctx.measureText(txt).width;
+    ctx.fillRect(x - width/2 - padding, y - fontSize/2 - padding, width + 2*padding, fontSize + 2*padding);  
+  }
+  ctx.fillStyle = fontColor;
+  ctx.fillText(txt, x, y);
+  ctx.restore();
+}
+
   function drawNode(node, ctx, scale) {
     if (node === selection) {
       drawRing(node, ctx, "black")
@@ -104,11 +120,17 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
     ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI);
     ctx.fillStyle = `rgba(${colors[node.type]}, ${getOpacity(node)}`
     ctx.fill()
-    ctx.font = '6px Sans-Serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = node === selection ? "black" : `rgba(${colors[node.type]}, 1)`
-    ctx.fillText(node.name, node.x, node.y + 10)
+    drawText(ctx, node.name, node.x, node.y + 10, { fontColor: node === selection ? "black" : `rgba(${colors[node.type]}, 1)`, bold: node === selection, bkg: `rgba(255, 255, 255, 0.8)` })
+  }
+
+  function drawLinkExtra(link, ctx, scale) {
+    if ([...clickedNodeLinks].includes(link)) {
+      drawText(ctx, link.name, (link.source.x + link.target.x) / 2, (link.source.y + link.target.y) / 2, { bkg: `rgba(255, 255, 255, 0.8)` })
+    }
+    // ctx.beginPath()
+    // ctx.arc(0, 0, 5, 0, 2*Math.PI);
+    // ctx.fillStyle="red"
+    // ctx.fill()
   }
 
   React.useEffect(() => {
@@ -155,9 +177,11 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
           nodeLabel=""
           // link
           onLinkHover={handleLinkHover}
+          linkCanvasObject={drawLinkExtra}
+          linkCanvasObjectMode={() => 'after'}
           linkColor={link => link === hoveredLink ? "grey" : "lightgrey"}
           linkLineDash={link => link.type === "optional" ? [2, 2] : false}
-          linkDirectionalArrowLength={6}
+          linkDirectionalArrowLength={link => clickedNodeLinks.has(link) ? 0 : 6}
           linkWidth={getLinkWidth}
           linkDirectionalParticles={4}
           linkDirectionalParticleWidth={link => clickedNodeLinks.has(link) ? 4 : 0}
