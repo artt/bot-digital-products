@@ -4,6 +4,7 @@ import { forceX, forceY, forceZ } from 'd3-force-3d'
 import { colors } from "../../data"
 
 const DBL_CLICK_TIMEOUT = 500
+const blurOpacity = 0.15
 
 export default function Graph({ data, selection, setSelection, setInfoBoxOpen }) {
 
@@ -89,18 +90,28 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
     ctx.fill()
   }
 
-  function getOpacity(node) {
+  function getNodeOpacity(node) {
     if (!selection)
       return 1
     if ([selection, hoveredNode, ...clickedNodeNeighbors, ...hoveredNodeNeighbors, ...hoveredLinkNeighbors].includes(node))
       return 1
-    return 0.3
+    return blurOpacity
   }
 
   function getLinkWidth(link) {
     if ([hoveredLink, ...clickedNodeLinks, ...hoveredNodeLinks].includes(link))
       return 4
     return 1
+  }
+
+  function getLinkColor(link) {
+    if (link === hoveredLink)
+      return "grey"
+    if (!selection)
+      return "lightgrey"
+    if ([...clickedNodeLinks].includes(link))
+      return "lightgrey"
+    return `rgba(100, 100, 100, ${blurOpacity})`
   }
 
   /// expand with color, background etc.
@@ -128,19 +139,16 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
     }
     ctx.beginPath();
     ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI);
-    ctx.fillStyle = `rgba(${colors[node.type]}, ${getOpacity(node)}`
+    ctx.fillStyle = `rgba(${colors[node.type]}, ${getNodeOpacity(node)}`
     ctx.fill()
-    drawText(ctx, node.name, node.x, node.y + 10, { fontColor: node === selection ? "black" : `rgba(${colors[node.type]}, 1)`, bold: node === selection, bkg: `rgba(255, 255, 255, 0.8)` })
+    drawText(ctx, node.name, node.x, node.y + 10, { fontColor: node === selection ? "black" : `rgba(${colors[node.type]}, ${getNodeOpacity(node)})`, bold: node === selection, bkg: `rgba(255, 255, 255, 0.8)` })
   }
 
+  // draw extra info on links (in case of link selection)
   function drawLinkExtra(link, ctx, scale) {
     if ([...clickedNodeLinks].includes(link)) {
       drawText(ctx, link.name, (link.source.x + link.target.x) / 2, (link.source.y + link.target.y) / 2, { bkg: `rgba(255, 255, 255, 0.8)` })
     }
-    // ctx.beginPath()
-    // ctx.arc(0, 0, 5, 0, 2*Math.PI);
-    // ctx.fillStyle="red"
-    // ctx.fill()
   }
 
   React.useEffect(() => {
@@ -190,10 +198,10 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
           onLinkHover={handleLinkHover}
           linkCanvasObject={drawLinkExtra}
           linkCanvasObjectMode={() => 'after'}
-          linkColor={link => link === hoveredLink ? "grey" : "lightgrey"}
+          linkColor={getLinkColor}
+          linkWidth={getLinkWidth}
           linkLineDash={link => link.type === "optional" ? [2, 2] : false}
           linkDirectionalArrowLength={link => clickedNodeLinks.has(link) ? 0 : 6}
-          linkWidth={getLinkWidth}
           linkDirectionalParticles={4}
           linkDirectionalParticleWidth={link => clickedNodeLinks.has(link) ? 4 : 0}
           linkDirectionalParticleSpeed={getParticleSpeed}
