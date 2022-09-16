@@ -216,9 +216,9 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
                 <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
               </filter>
             </defs>
-            <g style={{filter: 'url(#goo)'}}>
+            <g style={{ opacity: 0.1, filter: 'url(#goo)' }}>
               {nodePos.length > 0 &&
-                nodePos.map(n => <circle cx={n[0]} cy={n[1]} r="40" fill="rgba(230, 230, 230, 1)" />)
+                nodePos.map(n => <circle cx={n.x} cy={n.y} r="60" fill={n.type === "product" ? "red" : "blue"} />)
               }
             </g>
           </svg>
@@ -246,11 +246,11 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
             linkDirectionalParticleSpeed={getParticleSpeed}
             linkDirectionalParticleColor="grey"
             // misc
-            onEngineTick={(x) => !graphLoaded && setGraphLoaded(true)}
-            onRenderFramePre={(ctx) => {
+            onEngineTick={() => !graphLoaded && setGraphLoaded(true)}
+            onRenderFramePre={() => {
               setNodePos(graphData.nodes.map(node => {
                 const coord = fgRef.current.graph2ScreenCoords(node.x, node.y)
-                return [coord.x, coord.y]
+                return {...coord, type: node.type}
               }))
             }}
           />
