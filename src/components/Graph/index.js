@@ -1,72 +1,11 @@
 import React from "react"
 import ForceGraph2D from 'react-force-graph-2d';
-import { kebabCase } from 'lodash';
 import { forceX, forceY, forceZ } from 'd3-force-3d'
+import { colors } from "../../data"
 
-const nodeStructure = {
-  infrastructure: {
-    data: [
-      "CWS",
-      "Payment Data Platform",  
-    ],
-    payment: [
-      "BAHTNET API Hub",
-    ]
-  },
-  product: {
-    payment: [
-      "PromptBiz",
-    ],
-    lending: [
-      "Digital Factoring",
-      "dStatement",
-    ]
-  }
-}
+const DBL_CLICK_TIMEOUT = 500
 
-const linkStructure = [
-  {source: "CWS", target: "Digital Factoring", label: "ฐานข้อมูลสนับสนุน"},
-  {source: "PromptBiz", target: "Digital Factoring", label: "ข้อมูล invoice สนับสนุน"},
-  {source: "BAHTNET API Hub", target: "PromptBiz", label: "สนับสนุนการโอนเงินปริมาณมาก"},
-  {source: "Payment Data Platform", target: "dStatement", label: "แหล่งข้อมูล", type: "optional"},
-  {source: "PromptBiz", target: "Payment Data Platform", label: "ข้อมูลการทำธุรกรรม"},
-]
-
-const colors = {
-  infrastructure: "DarkBlue",
-  product: "DarkOrange",
-}
-
-function processNodes(nodeStructure) {
-  let nodes = []
-  Object.keys(nodeStructure).forEach(type => {
-    Object.keys(nodeStructure[type]).forEach(subtype => {
-      nodeStructure[type][subtype].forEach(n => {
-        nodes.push({
-          id: kebabCase(n),
-          name: n,
-          type: type,
-          subtype: subtype,
-        })
-      })
-    })
-  })
-  return nodes
-}
-
-function processLinks(linkStructure) {
-  return linkStructure.map(link => ({
-    ...link,
-    source: kebabCase(link.source),
-    target: kebabCase(link.target),
-  }))
-}
-
-function findNodeIndex(nodes, id) {
-  return nodes.map(node => node.id).indexOf(id)
-}
-
-export default function Graph({ clickedNode, setClickedNode }) {
+export default function Graph({ data, selection, setSelection, setInfoBoxOpen }) {
 
   const fgRef = React.useRef();
   const [graphLoaded, setGraphLoaded] = React.useState(false);
@@ -74,30 +13,67 @@ export default function Graph({ clickedNode, setClickedNode }) {
   const [highlightNodes, setHighlightNodes] = React.useState(new Set());
   const [highlightLinks, setHighlightLinks] = React.useState(new Set());
   const [hoverNode, setHoverNode] = React.useState(null);
+  const [prevClick, setPrevClick] = React.useState();
+
+  const [clickedLinks, setClickedLinks] = React.useState(new Set());
 
   const updateHighlight = () => {
-    setHighlightNodes(highlightNodes);
-    setHighlightLinks(highlightLinks);
+    setHighlightNodes(highlightNodes)
+    setHighlightLinks(highlightLinks)
   }
 
   const handleNodeHover = node => {
-    highlightNodes.clear();
-    highlightLinks.clear();
+    highlightNodes.clear()
+    highlightLinks.clear()
     if (node) {
-      highlightNodes.add(node);
+      highlightNodes.add(node)
       node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
       node.links.forEach(link => highlightLinks.add(link));
     }
-
     setHoverNode(node || null);
     updateHighlight();
   }
 
+  const handleNodeClick = node => {
+    const now = new Date();
+    clickedLinks.clear()
+    if (prevClick && prevClick.node === node && (now - prevClick.time) < DBL_CLICK_TIMEOUT) {
+      setPrevClick(null);
+      handleNodeDoubleClick(node);
+    }
+    setPrevClick({ node, time: now });
+    if (node) {
+      node.links.forEach(link => clickedLinks.add(link));
+    }
+    setClickedLinks(clickedLinks)
+    setSelection(node)
+  }
+
+  const handleNodeDoubleClick = node => {
+    setInfoBoxOpen(true)
+  }
+
+  // function getParticleNum(link) {
+  //   const distance = Math.sqrt((link.source.x - link.target.x)**2 + (link.source.y - link.target.y)**2)
+  //   return 0.1 * distance
+  // }
+
+  function getParticleSpeed(link) {
+    const distance = Math.sqrt((link.source.x - link.target.x)**2 + (link.source.y - link.target.y)**2)
+    return 0.5 / distance
+  }
+
   function drawNode(node, ctx, scale) {
-    ctx.beginPath();
-    if (node === hoverNode) {
+    if (node === selection) {
+      ctx.beginPath();
       ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI);
-      ctx.fillStyle = node === hoverNode ? "red" : "green"
+      ctx.fillStyle = "black"
+      ctx.fill()
+    }
+    else if (node === hoverNode) {
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI);
+      ctx.fillStyle = "grey"
       ctx.fill()
     }
     ctx.beginPath();
@@ -107,6 +83,7 @@ export default function Graph({ clickedNode, setClickedNode }) {
     ctx.font = '6px Sans-Serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
+    ctx.fillStyle = node === selection ? "black" : colors[node.type]
     ctx.fillText(node.name, node.x, node.y + 10)
   }
 
@@ -125,25 +102,6 @@ export default function Graph({ clickedNode, setClickedNode }) {
 		fgRef.current.d3Force('link').distance(30);
 		fgRef.current.d3Force('link').strength(0.2);
 	}, [graphLoaded]);
-
-  const data = React.useMemo(() => {
-    let nodes = processNodes(nodeStructure)
-    let links = processLinks(linkStructure)
-    links.forEach(link => {
-      const a = nodes[findNodeIndex(nodes, link.source)];
-      const b = nodes[findNodeIndex(nodes, link.target)];
-      !a.neighbors && (a.neighbors = []);
-      !b.neighbors && (b.neighbors = []);
-      a.neighbors.push(b);
-      b.neighbors.push(a);
-
-      !a.links && (a.links = []);
-      !b.links && (b.links = []);
-      a.links.push(link);
-      b.links.push(link);
-    })
-    return ({ nodes: nodes, links: links })
-  }, [])
 
   const [graphData, setGraphData] = React.useState({nodes: [], links: []})
 
@@ -166,17 +124,18 @@ export default function Graph({ clickedNode, setClickedNode }) {
           ref={fgRef}
           graphData={graphData}
           // node
-          nodeAutoColorBy="type"
           nodeVal={10}
           nodeCanvasObject={drawNode}
+          onNodeClick={handleNodeClick}
           onNodeHover={handleNodeHover}
           nodeLabel=""
           // link
           linkLineDash={link => link.type === "optional" ? [2, 2] : false}
           linkDirectionalArrowLength={6}
-          linkWidth={link => highlightLinks.has(link) ? 5 : 1}
+          linkWidth={link => highlightLinks.has(link) || clickedLinks.has(link) ? 5 : 1}
           linkDirectionalParticles={4}
-          linkDirectionalParticleWidth={link => highlightLinks.has(link) ? 4 : 0}
+          linkDirectionalParticleWidth={link => clickedLinks.has(link) ? 4 : 0}
+          linkDirectionalParticleSpeed={getParticleSpeed}
           // misc
           onEngineTick={() => setGraphLoaded(true)}
         />
