@@ -97,5 +97,22 @@ export function getData() {
     a.links.push(link);
     b.links.push(link);
   })
-  return ({ nodes: nodes, links: links })
+  // loop over subtype and create links between them
+  let subtypeLinks = []
+  Object.keys(nodeStructure).forEach(type => {
+    Object.keys(nodeStructure[type]).forEach(subtype => {
+      const tmp = nodeStructure[type][subtype]
+      const numInSubtype = tmp.length
+      for (let i = 0; i < numInSubtype; i ++) {
+        for (let j = i + 1; j < numInSubtype; j ++) {
+          subtypeLinks.push({
+            source: kebabCase(tmp[i].name),
+            target: kebabCase(tmp[j].name),
+            type: "subtype",
+          })
+        }
+      }
+    })
+  })
+  return ({ nodes: nodes, links: links.concat(subtypeLinks) })
 }
