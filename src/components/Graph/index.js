@@ -11,6 +11,8 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
   const fgRef = React.useRef();
   const [graphLoaded, setGraphLoaded] = React.useState(false);
 
+  const [nodePos, setNodePos] = React.useState([])
+
   // when selection is made, the node is called `selection`
   const [clickedNodeNeighbors, setClickedNodeNeighbors] = React.useState(new Set());
   const [clickedNodeLinks, setClickedNodeLinks] = React.useState(new Set());
@@ -35,6 +37,8 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
   }
 
   const handleNodeClick = node => {
+    // console.log(fgRef.current.graph2ScreenCoords(node.x, node.y))
+    // console.log(document.querySelector(".force-graph-container canvas").getContext('2d'))
     const now = new Date();
     clickedNodeLinks.clear()
     clickedNodeNeighbors.clear()
@@ -117,7 +121,7 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
   }
 
   /// expand with color, background etc.
-function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, bkg="", padding=1 }) {
+function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, bkg="", padding=1 }={}) {
   ctx.save();
   ctx.font = `${bold ? "bold" : ""} ${fontSize}px sans-serif`;
   ctx.textAlign = 'center'
@@ -143,13 +147,13 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
     ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI);
     ctx.fillStyle = `rgba(${colors[node.type]}, ${getNodeOpacity(node)}`
     ctx.fill()
-    drawText(ctx, node.name, node.x, node.y + 10, { fontColor: node === selection ? "black" : `rgba(${colors[node.type]}, ${getNodeOpacity(node)})`, bold: node === selection, bkg: `rgba(255, 255, 255, 0.8)` })
+    drawText(ctx, node.name, node.x, node.y + 10, { fontColor: node === selection ? "black" : `rgba(${colors[node.type]}, ${getNodeOpacity(node)})`, bold: node === selection })
   }
 
   // draw extra info on links (in case of link selection)
   function drawLinkExtra(link, ctx, scale) {
     if ([...clickedNodeLinks].includes(link)) {
-      drawText(ctx, link.name, (link.source.x + link.target.x) / 2, (link.source.y + link.target.y) / 2, { bkg: `rgba(255, 255, 255, 0.8)` })
+      drawText(ctx, link.name, (link.source.x + link.target.x) / 2, (link.source.y + link.target.y) / 2)
     }
   }
 
@@ -157,17 +161,17 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
     if (!graphLoaded) {
       return
     }
-    const f = 0.7
-		fgRef.current.d3Force('centerX', forceX(-100).strength(node => {
+    const f = 0.3
+		fgRef.current.d3Force('centerX', forceX(-200).strength(node => {
       return (node.type === "infrastructure" ? f : 0)
     }))
-		fgRef.current.d3Force('centerX', forceX(100).strength(node => {
+		fgRef.current.d3Force('centerX', forceX(200).strength(node => {
       return (node.type === "product" ? f : 0)
     }))
 		// fgRef.current.d3Force('centerY', forceY(0));
 		// fgRef.current.d3Force('centerZ', forceZ(0));
-		fgRef.current.d3Force('link').distance(link => link.type === "subtype" ? 5 : 40);
-		fgRef.current.d3Force('link').strength(link => link.type === "subtype" ? 0.4 : 0.2);
+		fgRef.current.d3Force('link').distance(link => link.type === "subtype" ? 10 : 60);
+		fgRef.current.d3Force('link').strength(link => link.type === "subtype" ? 0.4 : 0.1);
 		fgRef.current.d3Force('charge').strength(-150);
 	}, [graphLoaded]);
 
@@ -176,6 +180,14 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
   React.useEffect(() => {
     setGraphData(data)
   }, [data])
+
+  React.useEffect(() => {
+    // console.log(nodePos)
+  }, [nodePos])
+
+  React.useEffect(() => {
+    console.log(graphData.nodes[0])
+  }, [graphData])
 
   return(
     <div onClick={handleCanvasClick}>
@@ -187,31 +199,63 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
         </div>
 			}
       {graphData &&
-        <ForceGraph2D
-          // data
-          ref={fgRef}
-          graphData={graphData}
-          // node
-          nodeVal={10}
-          nodeCanvasObject={drawNode}
-          onNodeClick={handleNodeClick}
-          onNodeHover={handleNodeHover}
-          nodeLabel=""
-          // link
-          onLinkHover={handleLinkHover}
-          linkCanvasObject={drawLinkExtra}
-          linkCanvasObjectMode={() => 'after'}
-          linkColor={getLinkColor}
-          linkWidth={getLinkWidth}
-          linkLineDash={link => link.type === "optional" ? [2, 2] : false}
-          linkDirectionalArrowLength={link => clickedNodeLinks.has(link) ? 0 : 6}
-          linkDirectionalParticles={4}
-          linkDirectionalParticleWidth={link => clickedNodeLinks.has(link) ? 4 : 0}
-          linkDirectionalParticleSpeed={getParticleSpeed}
-          linkDirectionalParticleColor="grey"
-          // misc
-          onEngineTick={() => setGraphLoaded(true)}
-        />
+        <>
+          <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+            }}
+          >
+            <defs>
+              <filter id="goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+              </filter>
+            </defs>
+            <g style={{filter: 'url(#goo)'}}>
+              {nodePos.length > 0 &&
+                nodePos.map(n => <circle cx={n[0]} cy={n[1]} r="40" fill="rgba(230, 230, 230, 1)" />)
+              }
+            </g>
+          </svg>
+          {/* <div style={{filter: "url(#goo)"}}> */}
+          <ForceGraph2D
+            // data
+            ref={fgRef}
+            graphData={graphData}
+            // node
+            nodeVal={10}
+            nodeCanvasObject={drawNode}
+            onNodeClick={handleNodeClick}
+            onNodeHover={handleNodeHover}
+            nodeLabel=""
+            // link
+            onLinkHover={handleLinkHover}
+            linkCanvasObject={drawLinkExtra}
+            linkCanvasObjectMode={() => 'after'}
+            linkColor={getLinkColor}
+            linkWidth={getLinkWidth}
+            linkLineDash={link => link.type === "optional" ? [2, 2] : false}
+            linkDirectionalArrowLength={link => clickedNodeLinks.has(link) ? 0 : 6}
+            linkDirectionalParticles={4}
+            linkDirectionalParticleWidth={link => clickedNodeLinks.has(link) ? 4 : 0}
+            linkDirectionalParticleSpeed={getParticleSpeed}
+            linkDirectionalParticleColor="grey"
+            // misc
+            onEngineTick={(x) => !graphLoaded && setGraphLoaded(true)}
+            onRenderFramePre={(ctx) => {
+              setNodePos(graphData.nodes.map(node => {
+                const coord = fgRef.current.graph2ScreenCoords(node.x, node.y)
+                return [coord.x, coord.y]
+              }))
+            }}
+          />
+          {/* </div> */}
+        </>
       }
     </div>
   )
