@@ -105,6 +105,8 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
   }
 
   function getLinkColor(link) {
+    if (link.type === "subtype")
+      return "rgba(255, 255, 255, 0)"
     if (link === hoveredLink)
       return "grey"
     if (!selection)
@@ -155,16 +157,17 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
     if (!graphLoaded) {
       return
     }
+    const f = 0.7
 		fgRef.current.d3Force('centerX', forceX(-100).strength(node => {
-      return (node.type === "infrastructure" ? 1 : 0)
+      return (node.type === "infrastructure" ? f : 0)
     }))
 		fgRef.current.d3Force('centerX', forceX(100).strength(node => {
-      return (node.type === "product" ? 1 : 0)
+      return (node.type === "product" ? f : 0)
     }))
 		// fgRef.current.d3Force('centerY', forceY(0));
 		// fgRef.current.d3Force('centerZ', forceZ(0));
-		fgRef.current.d3Force('link').distance(30);
-		fgRef.current.d3Force('link').strength(0.2);
+		fgRef.current.d3Force('link').distance(link => link.type === "subtype" ? 5 : 40);
+		fgRef.current.d3Force('link').strength(link => link.type === "subtype" ? 0.4 : 0.2);
 		fgRef.current.d3Force('charge').strength(-150);
 	}, [graphLoaded]);
 
