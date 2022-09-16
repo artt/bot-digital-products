@@ -49,8 +49,8 @@ const linkStructure = [
 ]
 
 export const colors = {
-  infrastructure: "DarkBlue",
-  product: "DarkOrange",
+  infrastructure: [45, 130, 161],
+  product: [243, 137, 3],
 }
 
 function processNodes(nodeStructure) {

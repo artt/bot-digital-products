@@ -10,80 +10,104 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
   const fgRef = React.useRef();
   const [graphLoaded, setGraphLoaded] = React.useState(false);
 
-  const [highlightNodes, setHighlightNodes] = React.useState(new Set());
-  const [highlightLinks, setHighlightLinks] = React.useState(new Set());
-  const [hoverNode, setHoverNode] = React.useState(null);
+  // when selection is made, the node is called `selection`
+  const [clickedNodeNeighbors, setClickedNodeNeighbors] = React.useState(new Set());
+  const [clickedNodeLinks, setClickedNodeLinks] = React.useState(new Set());
   const [prevClick, setPrevClick] = React.useState();
-
-  const [clickedLinks, setClickedLinks] = React.useState(new Set());
-
-  const updateHighlight = () => {
-    setHighlightNodes(highlightNodes)
-    setHighlightLinks(highlightLinks)
-  }
-
-  const handleNodeHover = node => {
-    highlightNodes.clear()
-    highlightLinks.clear()
-    if (node) {
-      highlightNodes.add(node)
-      node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
-      node.links.forEach(link => highlightLinks.add(link));
-    }
-    setHoverNode(node || null);
-    updateHighlight();
-  }
+  // when a node is hovered
+  const [hoveredNode, setHoveredNode] = React.useState(null);
+  const [hoveredNodeNeighbors, setHoveredNodeNeighbors] = React.useState(new Set())
+  const [hoveredNodeLinks, setHoveredNodeLinks] = React.useState(new Set())
+  // when a link is hovered
+  const [hoveredLink, setHoveredLink] = React.useState(null)
+  const [hoveredLinkNeighbors, setHoveredLinkNeighbors] = React.useState(new Set())
+  // link clicking is not supported
 
   const handleNodeClick = node => {
     const now = new Date();
-    clickedLinks.clear()
+    clickedNodeLinks.clear()
+    clickedNodeNeighbors.clear()
     if (prevClick && prevClick.node === node && (now - prevClick.time) < DBL_CLICK_TIMEOUT) {
       setPrevClick(null);
       handleNodeDoubleClick(node);
     }
     setPrevClick({ node, time: now });
     if (node) {
-      node.links.forEach(link => clickedLinks.add(link));
+      node.neighbors.forEach(neighbor => clickedNodeNeighbors.add(neighbor))
+      node.links.forEach(link => clickedNodeLinks.add(link));
     }
-    setClickedLinks(clickedLinks)
+    setClickedNodeNeighbors(clickedNodeNeighbors)
+    setClickedNodeLinks(clickedNodeLinks)
     setSelection(node)
+  }
+
+  const handleNodeHover = node => {
+    hoveredNodeNeighbors.clear()
+    hoveredNodeLinks.clear()
+    if (node) {
+      node.neighbors.forEach(neighbor => hoveredNodeNeighbors.add(neighbor));
+      node.links.forEach(link => hoveredNodeLinks.add(link));
+    }
+    setHoveredNodeNeighbors(hoveredNodeNeighbors)
+    setHoveredNodeLinks(hoveredNodeLinks)
+    setHoveredNode(node || null);
+  }
+
+  const handleLinkHover = link => {
+    hoveredLinkNeighbors.clear()
+    if (link) {
+      hoveredLinkNeighbors.add(link.source)
+      hoveredLinkNeighbors.add(link.target)
+    }
+    setHoveredLinkNeighbors(hoveredLinkNeighbors)
+    setHoveredLink(link || null)
   }
 
   const handleNodeDoubleClick = node => {
     setInfoBoxOpen(true)
   }
 
-  // function getParticleNum(link) {
-  //   const distance = Math.sqrt((link.source.x - link.target.x)**2 + (link.source.y - link.target.y)**2)
-  //   return 0.1 * distance
-  // }
-
   function getParticleSpeed(link) {
     const distance = Math.sqrt((link.source.x - link.target.x)**2 + (link.source.y - link.target.y)**2)
     return 0.5 / distance
   }
 
+  function drawRing(node, ctx, color) {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = color
+    ctx.fill()
+  }
+
+  function getOpacity(node) {
+    if (!selection)
+      return 1
+    if ([selection, hoveredNode, ...clickedNodeNeighbors, ...hoveredNodeNeighbors, ...hoveredLinkNeighbors].includes(node))
+      return 1
+    return 0.3
+  }
+
+  function getLinkWidth(link) {
+    if ([hoveredLink, ...clickedNodeLinks, ...hoveredNodeLinks].includes(link))
+      return 4
+    return 1
+  }
+
   function drawNode(node, ctx, scale) {
     if (node === selection) {
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI);
-      ctx.fillStyle = "black"
-      ctx.fill()
+      drawRing(node, ctx, "black")
     }
-    else if (node === hoverNode) {
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI);
-      ctx.fillStyle = "grey"
-      ctx.fill()
+    else if ([hoveredNode, ...hoveredNodeNeighbors, ...hoveredLinkNeighbors].includes(node)) {
+      drawRing(node, ctx, "grey")
     }
     ctx.beginPath();
     ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI);
-    ctx.fillStyle = colors[node.type]
+    ctx.fillStyle = `rgba(${colors[node.type]}, ${getOpacity(node)}`
     ctx.fill()
     ctx.font = '6px Sans-Serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = node === selection ? "black" : colors[node.type]
+    ctx.fillStyle = node === selection ? "black" : `rgba(${colors[node.type]}, 1)`
     ctx.fillText(node.name, node.x, node.y + 10)
   }
 
@@ -130,12 +154,15 @@ export default function Graph({ data, selection, setSelection, setInfoBoxOpen })
           onNodeHover={handleNodeHover}
           nodeLabel=""
           // link
+          onLinkHover={handleLinkHover}
+          linkColor={link => link === hoveredLink ? "grey" : "lightgrey"}
           linkLineDash={link => link.type === "optional" ? [2, 2] : false}
           linkDirectionalArrowLength={6}
-          linkWidth={link => highlightLinks.has(link) || clickedLinks.has(link) ? 5 : 1}
+          linkWidth={getLinkWidth}
           linkDirectionalParticles={4}
-          linkDirectionalParticleWidth={link => clickedLinks.has(link) ? 4 : 0}
+          linkDirectionalParticleWidth={link => clickedNodeLinks.has(link) ? 4 : 0}
           linkDirectionalParticleSpeed={getParticleSpeed}
+          linkDirectionalParticleColor="grey"
           // misc
           onEngineTick={() => setGraphLoaded(true)}
         />
