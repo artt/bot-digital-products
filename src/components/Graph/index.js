@@ -180,14 +180,6 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
     setGraphData(data)
   }, [data])
 
-  React.useEffect(() => {
-    // console.log(nodePos)
-  }, [nodePos])
-
-  React.useEffect(() => {
-    console.log(graphData.nodes[0])
-  }, [graphData])
-
   return(
     <div onClick={handleCanvasClick}>
       {!graphLoaded &&
@@ -217,7 +209,7 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
             </defs>
             <g style={{ opacity: 0.1, filter: 'url(#goo)' }}>
               {nodePos.length > 0 &&
-                nodePos.map(n => <circle cx={n.x} cy={n.y} r="60" fill={`rgba(${n.color}, 1)`} />)
+                nodePos.map((n, i) => <circle key={`circle${i}`} cx={n.x} cy={n.y} r="60" fill={`rgb(${n.color})`} />)
               }
             </g>
           </svg>
@@ -243,7 +235,7 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
             linkDirectionalParticles={4}
             linkDirectionalParticleWidth={link => clickedNodeLinks.has(link) ? 4 : 0}
             linkDirectionalParticleSpeed={getParticleSpeed}
-            linkDirectionalParticleColor="grey"
+            linkDirectionalParticleColor={link => `rgb(${link.source.color})`}
             // misc
             onEngineTick={() => !graphLoaded && setGraphLoaded(true)}
             onRenderFramePre={() => {
