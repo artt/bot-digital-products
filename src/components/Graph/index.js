@@ -213,7 +213,6 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
               }
             </g>
           </svg>
-          {/* <div style={{filter: "url(#goo)"}}> */}
           <ForceGraph2D
             // data
             ref={fgRef}
@@ -245,7 +244,6 @@ function drawText(ctx, txt, x, y, { fontColor="black", fontSize=6, bold=false, b
               }))
             }}
           />
-          {/* </div> */}
         </>
       }
     </div>
